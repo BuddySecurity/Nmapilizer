@@ -4,9 +4,13 @@
 
 Nmapilizer reads Nmap output (`.xml`, `.nmap`, `.gnmap`), merges any number of scans, and turns them into a prioritised list of what to look at first. It checks every detected service against a **local vulnerability database** (NVD, CISA KEV, EPSS, Exploit-DB, Metasploit), flags public exploits, and gives you either a live web dashboard or a ready-to-share report bundle.
 
-> **Version 1.0** · Author: **[@BudSec](https://github.com/buddysecurity)** · Standard library only — no `pip install` needed.
+> **Version 7.1.1** · Author: **[@BudSec](https://github.com/buddysecurity)** · Python standard library only — no `pip install` needed.
 
 > ⚠️ **Passive analysis only.** Nmapilizer never scans a target and never runs an exploit. It only reads scan files you already have. Use it only on networks you own or are authorised to assess.
+
+![addimagehere-of-main-dashboard-findings-page](Dashboard.png)
+
+*The live dashboard: every finding is ranked P1–P4 with severity, KEV, EPSS and exploit data.*
 
 ---
 
@@ -22,7 +26,7 @@ Nmapilizer reads Nmap output (`.xml`, `.nmap`, `.gnmap`), merges any number of s
 - **CPE-based matching** — uses the CPE Nmap records for each service, de-duplicated so each unique product/version is looked up once however many hosts have it. Services without a CPE fall back to a product-name guess, clearly labelled **Banner guess**.
 - **Priority ranking (P1–P4)** and a **confidence label** on every hit.
 - **Startup precheck** — verifies Python, `searchsploit`, Metasploit and the database before running; prints install commands for your OS if something is missing.
-- **Live dashboard** (`--serve`) — drag-and-drop import, live filters, host drawer, topology graph, themes, top-of-page progress bar.
+- **Live dashboard** (`--serve`) — drag-and-drop import, live filters, host drawer, topology graph, themes, and a top-of-page progress bar.
 - **Reports** — HTML bundle, single-file HTML, PDF (via the browser's *Save as PDF*), CSV, JSON, TXT. Exports use the **same theme** you have selected in the dashboard.
 - **Realistic severity** — an open port or exposed service on its own is **Informational**. Severity is raised only when a CVE or exploit actually matches.
 
@@ -39,12 +43,55 @@ Nmapilizer reads Nmap output (`.xml`, `.nmap`, `.gnmap`), merges any number of s
 
 Nmapilizer checks all of this for you on every launch. If anything is missing it prints the exact commands and exits.
 
-### Installing the prerequisites
+---
 
-**Kali / Debian / Ubuntu**
+## Getting started — step by step
+
+### Step 1 — Get the script
+
 ```bash
-sudo apt update
-sudo apt install -y exploitdb metasploit-framework   # on Ubuntu/Debian use the Rapid7 installer for Metasploit, below
+git clone https://github.com/buddysecurity/nmapilizer.git
+cd nmapilizer
+```
+
+> Replace the repository URL and filename with your own if they differ.
+
+### Step 2 — Run it once and let the precheck tell you what is missing
+
+```bash
+python3 nmapilizer_v7_1.py
+```
+
+On launch it prints the author banner, then the **PRECHECK** panel. Anything marked ✘ is required. If something is missing it shows a **SETUP REQUIRED** panel with the exact commands for your operating system, then exits.
+
+![addimagehere-of-startup-banner-and-precheck-failing-with-setup-required](initial-check.png)
+
+*First run on a fresh Kali machine: `searchsploit`, Metasploit and the database are missing, and the commands to fix them are printed.*
+
+### Step 3 — Install the prerequisites
+
+**Kali Linux**
+
+```bash
+sudo apt update && sudo apt install -y exploitdb
+searchsploit -u                      # update Exploit-DB data afterwards
+sudo apt install -y metasploit-framework
+```
+
+[addimagehere-of-installing-exploitdb]
+
+*Installing `exploitdb` (provides `searchsploit`).*
+
+![addimagehere-of-installing-metasploit-framework](install-metasploit.png)
+
+*Installing `metasploit-framework` (provides `msfconsole`). This is a large download.*
+
+<details>
+<summary>Other systems (Debian/Ubuntu, Arch, macOS, Windows)</summary>
+
+**Debian / Ubuntu**
+```bash
+sudo apt update && sudo apt install -y exploitdb
 ```
 
 **Metasploit on Debian/Ubuntu/other Linux (Rapid7 installer)**
@@ -74,27 +121,9 @@ yay -S metasploit        # AUR
 
 **Windows** — run Nmapilizer inside WSL2 (Kali recommended): `wsl --install -d kali-linux`
 
----
+</details>
 
-## Quick start
-
-```bash
-git clone https://github.com/buddysecurity/nmapilizer.git
-cd nmapilizer
-
-# 1) Build the vulnerability database (one time, then refresh occasionally)
-python3 nmapilizer_v7_1.py --update-db
-
-# 2a) Live dashboard
-python3 nmapilizer_v7_1.py --serve
-
-# 2b) Or generate a report bundle from scan files
-python3 nmapilizer_v7_1.py scans/*.xml
-```
-
-> Replace the repository URL and filename with your own if they differ.
-
-### Building the database
+### Step 4 — Build the vulnerability database (one time)
 
 ```bash
 # Optional but recommended: a free NVD API key makes the first build ~8x faster
@@ -104,10 +133,30 @@ export NVD_API_KEY=your-key-here
 python3 nmapilizer_v7_1.py --update-db
 ```
 
+![addimagehere-of-update-db-building-the-database](install-exploitDB.png)
+
+*The database build: CISA KEV, EPSS, Exploit-DB, Metasploit and NVD are combined into one local SQLite file.*
+
 - The first NVD download takes roughly **15–25 minutes** without a key (about 2 minutes with one).
 - If you stop it, running `--update-db` again **resumes** where it left off.
 - Later runs are incremental and quick. Nmapilizer offers a refresh when the database is older than 7 days.
-- Default location: `~/.nmapilizer/vulndb.sqlite` (change with `--db PATH` or `NMAPILIZER_DB`).
+- Default location: `~/.nmapilizer/vulndb.sqlite` (change with `--db PATH` or the `NMAPILIZER_DB` environment variable).
+
+### Step 5 — Run it
+
+Once every check passes, Nmapilizer prints **All prerequisites OK** and starts.
+
+![addimagehere-of-precheck-all-ok-and-startup](precheck-passed.png)
+
+*All prerequisites pass: tools found, database ready, fresh.*
+
+```bash
+# Live dashboard (opens http://127.0.0.1:8765)
+python3 nmapilizer_v7_1.py --serve
+
+# Or generate a report bundle straight from scan files
+python3 nmapilizer_v7_1.py scans/*.xml
+```
 
 For best results scan with service detection, and optionally the `vulners` script:
 
@@ -117,22 +166,20 @@ nmap -sV --version-all -O --script vulners -oX scan.xml <target>
 
 ---
 
-## Usage
-
-### Live dashboard
+## Using the live dashboard
 
 ```bash
-python3 nmapilizer_v7_1.py --serve                       # open http://127.0.0.1:8765
+python3 nmapilizer_v7_1.py --serve                       # http://127.0.0.1:8765
 python3 nmapilizer_v7_1.py --serve --port 9000 --watch ./scans
 ```
 
-- Drag and drop or **Import scans** — many files are uploaded first, then analysed once.
+- **Import scans** or drag and drop — many files are uploaded first, then analysed once.
 - A **progress bar at the top of the page** shows exactly what the tool is doing.
 - Hover the glowing line on the far-left edge for the **Save & export** menu (click it to pin).
-- Section tabs: Hosts, Findings, Exploits, CVEs, Exploit Guides, Topology graph, Ports, Settings.
+- Tabs: Hosts, Findings, Exploits, CVEs, Exploit Guides, Topology graph, Ports, Settings.
 - **Terminate** saves everything (HTML + CSVs) to a new report folder and closes the tool.
 
-### Report bundle (command line)
+## Report bundle (command line)
 
 ```bash
 python3 nmapilizer_v7_1.py scan1.xml scan2.xml --theme light --company "Acme" --author "Your Name"
@@ -185,8 +232,8 @@ Run `python3 nmapilizer_v7_1.py --help` for the full list.
 ### Severity policy
 
 - An **open port or exposed service alone is Informational** (RDP, Telnet, FTP, cleartext HTTP, unknown services, etc.).
-- Built-in exploit rules that match only a **service name** (no version) are Informational; the lead still appears on the Exploits page.
-- **CVE-based findings** take their severity from the CVSS score, and anything on the KEV list is **Critical**.
+- Built-in exploit rules that match only a **service name** (no version) are Informational and are never promoted by the KEV list; the lead still appears on the Exploits page.
+- **CVE-based findings** take their severity from the CVSS score, and a CPE/version match on the KEV list is **Critical**.
 - Every open port appears in Findings — as Informational if nothing else matched. Use the severity filter to hide them.
 
 ---
@@ -196,7 +243,7 @@ Run `python3 nmapilizer_v7_1.py --help` for the full list.
 - **Version matching cannot see back-ported patches.** Linux distributions often fix a CVE without changing the version number, so treat results as **"to verify"**, not "confirmed vulnerable".
 - Letter-suffixed versions (for example OpenSSL `1.0.1f`) are compared approximately.
 - A **Banner guess** is lower confidence than a CPE match.
-- The first database build is a large download and takes time (see above).
+- The first database build is a large download and takes time (see Step 4).
 - Verify every Critical/High finding manually before acting.
 
 ---
