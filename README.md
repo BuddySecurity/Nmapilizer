@@ -4,7 +4,7 @@
 
 Nmapilizer reads Nmap output (`.xml`, `.nmap`, `.gnmap`), merges any number of scans, and turns them into a prioritised list of what to look at first. It checks every detected service against a **local vulnerability database** (NVD, CISA KEV, EPSS, Exploit-DB, Metasploit), flags public exploits, and gives you either a live web dashboard or a ready-to-share report bundle.
 
-> **Version 7.1.1** · Author: **[@BudSec](https://github.com/buddysecurity)** · Python standard library only — no `pip install` needed.
+> **Version 7.1.0** · Author: **[@BudSec](https://github.com/buddysecurity)** · Python standard library only — no `pip install` needed.
 
 > ⚠️ **Passive analysis only.** Nmapilizer never scans a target and never runs an exploit. It only reads scan files you already have. Use it only on networks you own or are authorised to assess.
 
